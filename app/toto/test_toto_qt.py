@@ -881,24 +881,59 @@ class CameraApp(QWidget):
 
         ciclo_layout.addWidget(QLabel("Tipo de pulso:"),3,0)
         self.combo_pulso_ciclo = QComboBox()
-        self.combo_pulso_ciclo.addItems(["Pulso Pos.+","Pulso Neg.-","Pulso Mixto", "Pulso Oscilatorio"])
+        self.combo_pulso_ciclo.addItems(["Pulso cuadrado","Pulso Mixto", "Pulso Oscilatorio"])
         ciclo_layout.addWidget(self.combo_pulso_ciclo,3,1)
 
-        ciclo_layout.addWidget(QLabel("Signo:"), 3, 2)
+        # --- Campos adicionales (ocultos inicialmente) ---
+        # Oscilatorio
+        self.label_amp = QLabel("Amplitud de oscilación [%] (0-50):")
+        self.amp_edit = QLineEdit()
+        self.label_frec = QLabel("Cantidad de oscilaciones:")
+        self.frec_edit = QLineEdit()
 
-        self.radio_signo_pos = QRadioButton("Positivo")
-        self.radio_signo_neg = QRadioButton("Negativo")
+        ciclo_layout.addWidget(self.label_amp, 4, 0)
+        ciclo_layout.addWidget(self.amp_edit, 4, 1)
+        ciclo_layout.addWidget(self.label_frec, 4, 2)
+        ciclo_layout.addWidget(self.frec_edit, 4, 3)
 
-        # Para que sean excluyentes, van en un mismo QButtonGroup
-        self.signo_group = QButtonGroup()
-        self.signo_group.addButton(self.radio_signo_pos)
-        self.signo_group.addButton(self.radio_signo_neg)
+        # Asimétrico
+        self.label_asim = QLabel("% de asimetría:")
+        self.asim_edit = QLineEdit()
+        self.label_altura = QLabel("Altura de asimetría [V]:")
+        self.altura_edit = QLineEdit()
 
-        signo_layout = QHBoxLayout()
-        signo_layout.addWidget(self.radio_signo_pos)
-        signo_layout.addWidget(self.radio_signo_neg)
+        ciclo_layout.addWidget(self.label_asim, 5, 0)
+        ciclo_layout.addWidget(self.asim_edit, 5, 1)
+        ciclo_layout.addWidget(self.label_altura, 5, 2)
+        ciclo_layout.addWidget(self.altura_edit, 5, 3)
 
-        ciclo_layout.addLayout(signo_layout, 3, 3)
+        # Ocultamos todos los campos adicionales al inicio
+        for widget in [self.label_amp, self.amp_edit, self.label_frec, self.frec_edit,
+                    self.label_asim, self.asim_edit, self.label_altura, self.altura_edit]:
+            widget.hide()
+
+        # Función de actualización
+        def actualizar_campos_pulso(tipo):
+            # Ocultamos todos
+            for widget in [self.label_amp, self.amp_edit, self.label_frec, self.frec_edit,
+                        self.label_asim, self.asim_edit, self.label_altura, self.altura_edit]:
+                widget.hide()
+
+            if tipo == "Pulso Oscilatorio":
+                self.label_amp.show()
+                self.amp_edit.show()
+                self.label_frec.show()
+                self.frec_edit.show()
+
+            elif tipo == "Pulso Mixto":
+                self.label_asim.show()
+                self.asim_edit.show()
+                self.label_altura.show()
+                self.altura_edit.show()
+
+        # Conexión del combo a la función
+        self.combo_pulso_ciclo.currentTextChanged.connect(actualizar_campos_pulso)
+
 
         bottom_layout.addWidget(ciclo_group)
 
@@ -1022,11 +1057,13 @@ class CameraApp(QWidget):
         datos[-1] = 0
         return datos
     
-    def sqr_osci_pulse(self,signo):
+    def sqr_osci_pulse(self,signo,A,f):
+        w = 2*np.pi*f
+        A = (A/2)/100
         n_puntos = 1000 #entre 8 y 16000 puntos soporta
         datos = np.zeros(n_puntos)
         t = np.linspace(0,1,len(datos[1: -2]))
-        datos[1:-2] = 1 + A*np.cos(w*t)-A
+        datos[1:-2] = signo*(1 + A*np.cos(w*t)-A)
         return datos
     
     def binarize_pulse(self,data):
